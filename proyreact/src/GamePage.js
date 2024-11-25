@@ -18,57 +18,60 @@ const GamePage = () => {
   const socket = useWebSocket(); // Obtén el WebSocket desde el contexto
   // Inicializa el WebSocket y el tablero al cargar la página
   useEffect(() => {
+    // Inicializa el tablero y configura colores
     createGrid();
     setPlayerColor(generateRandomColor());
     placeBall();
     playerPositionRef.current = playerPosition;
-    
-    
-    
-  // Configura el evento keydown
-  const keyDownHandler = (event) => {
-    let newPosition = playerPositionRef.current; // Copia la posición actual
+  
+    // Configura el evento keydown
+    const keyDownHandler = (event) => {
+      let newPosition = playerPositionRef.current; // Copia la posición actual
+  
+      switch (event.key) {
+        case "ArrowUp":
+          if (newPosition >= 11) newPosition -= 11; // Subir una fila
+          break;
+        case "ArrowDown":
+          if (newPosition < 99) newPosition += 11; // Bajar una fila
+          break;
+        case "ArrowLeft":
+          if (newPosition % 11 !== 0) newPosition -= 1; // Mover a la izquierda
+          break;
+        case "ArrowRight":
+          if (newPosition % 11 !== 10) newPosition += 1; // Mover a la derecha
+          break;
+        default:
+          return; // Ignorar otras teclas
+      }
+  
+      console.log(`Posición calculada: ${newPosition}, Fila: ${Math.floor(newPosition / 11)}, Columna: ${newPosition % 11}`);
+      console.log("Nueva posición calculada:", newPosition);
+  
+      setPlayerPosition(newPosition); // Actualiza la posición del jugador
+      playerPositionRef.current = newPosition; // Actualiza la referencia
 
-    switch (event.key) {
-      case "ArrowUp":
-        if (newPosition >= 11) newPosition -= 11; // Subir una fila
-        break;
-      case "ArrowDown":
-        if (newPosition < 99) newPosition += 11; // Bajar una fila
-        break;
-      case "ArrowLeft":
-        if (newPosition % 11 !== 0) newPosition -= 1; // Mover a la izquierda
-        break;
-      case "ArrowRight":
-        if (newPosition % 11 !== 10) newPosition += 1; // Mover a la derecha
-        break;
-      default:
-        return; // Ignorar otras teclas
-    }
-
-    console.log(`Posición calculada: ${newPosition}, Fila: ${Math.floor(newPosition / 11)}, Columna: ${newPosition % 11}`);
-
-
-    console.log("Nueva posición calculada:", newPosition);
-    setPlayerPosition(newPosition); // Actualiza la posición del jugador
-     // Enviar la nueva posición al servidor
-     if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(
-        JSON.stringify({
-          type: "playerMove",
-          username,
-          position: newPosition,
-        })
-      );
-    }
-  };
-
-  window.addEventListener("keydown", keyDownHandler);
-
-  return () => {
-    window.removeEventListener("keydown", keyDownHandler);
-  };
-}, [socket,playerPosition]); // Dependencia del estado actual
+      // Enviar la nueva posición al servidor
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            type: "playerMove",
+            username,
+            position: newPosition,
+          })
+        );
+      }
+    };
+  
+    // Agregar el evento keydown
+    window.addEventListener("keydown", keyDownHandler);
+  
+    // Cleanup al desmontar el componente
+    return () => {
+      window.removeEventListener("keydown", keyDownHandler);
+    };
+  }, [socket, playerPosition]); // Dependencias de socket y posición actual del jugador
+  
 
   const handleSocketMessage = (data) => {
     switch (data.type) {
@@ -182,7 +185,6 @@ const GamePage = () => {
               key={index}
               style={{
                 ...styles.cell,
-                border: "1px solid red", // Temporal para depuración
                 backgroundImage: cell.hasObstacle ? "url('/images/barrier.webp')" : "url('/images/floor.jpg')",
                 backgroundSize: "cover", // Hace que la imagen cubra toda la celda
                 backgroundPosition: "center", // Centra la imagen dentro de la celda
@@ -191,17 +193,22 @@ const GamePage = () => {
             >
               {index === ballPosition && <div style={styles.ball}></div>}
               
-              {Object.entries(players).map(([username, playerIndex]) =>
-      playerIndex === index ? (
-        <div
-          key={username}
-          style={{
-            ...styles.player,
-            backgroundColor: username === localStorage.getItem("username") ? playerColor : "gray",
-          }}
-        ></div>
-      ) : null
-    )}
+              {Object.entries(players).map(([username, position]) => {
+                console.log(`Jugador: ${username}, Posición: ${position}, Index actual: ${index}`);
+                 if (position === index) {
+                  console.log(`Renderizando jugador ${username} en la celda ${index}`);
+                  return (
+                    <div
+                      key={username}
+                      style={{
+                        ...styles.player,
+                        backgroundColor: username === localStorage.getItem("username") ? playerColor : "gray",
+                      }}
+                    ></div>
+                  );
+                }
+                return null;
+              })}
             </div>
           ))}
         </div>
@@ -289,21 +296,23 @@ const styles = {
     width: "50px",
     height: "50px",
     border: "1px solid gray",
+    position: "relative",
   },
   ball: {
     width: "30px",
     height: "30px",
-    backgroundColor: "red",
+    backgroundColor: "green",
     borderRadius: "50%",
   },
   player: {
     width: "40px",
     height: "40px",
     borderRadius: "50%",
-    position: "absolute",
+    position: "relative",
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
+    zIndex: 10,
   },
   chatContainer: {
     flex: 1,
