@@ -1,0 +1,9 @@
+org\example\ChatController.class
+org\example\Character.class
+org\example\MessageData.class
+org\example\WebSocketConfig.class
+org\example\Ball.class
+org\example\WebSocketApplication.class
+org\example\GameLogic.class
+org\example\MainController.class
+org\example\ChatHandler.class
