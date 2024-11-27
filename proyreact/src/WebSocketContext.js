@@ -3,45 +3,55 @@ import React, { createContext, useContext, useEffect, useRef } from "react";
 const WebSocketContext = createContext();
 
 export const WebSocketProvider = ({ children }) => {
-  const socket = useRef(null);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    // Solo inicializa el WebSocket una vez
-    if (!socket.current) {
-      socket.current = new WebSocket("ws://localhost:8080/chat");
+    if (!socketRef.current) {
+      socketRef.current = new WebSocket("ws://localhost:8080/chat");
 
-      socket.current.onopen = () => {
+      socketRef.current.onopen = () => {
         console.log("WebSocket conectado");
       };
 
-      socket.current.onclose = () => {
-        console.log("WebSocket cerrado");
+      socketRef.current.onclose = () => {
+        console.log("WebSocket desconectado");
       };
 
-      socket.current.onerror = (error) => {
+      socketRef.current.onerror = (error) => {
         console.error("Error en WebSocket:", error);
       };
 
-      socket.current.onmessage = (event) => {
-        console.log("Mensaje recibido:", event.data);
+      socketRef.current.onmessage = (event) => {
+        console.log("Mensaje recibido del servidor:", event.data);
       };
     }
 
     return () => {
-      if (socket.current) {
-        socket.current.close();
-        socket.current = null;
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
       }
     };
   }, []);
 
+  const sendMessage = (message) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      if(typeof message === "object"){
+        socketRef.current.send(JSON.stringify(message));  
+      }else{
+        socketRef.current.send(message);
+      }
+      
+    } else {
+      console.error("WebSocket no está listo para enviar mensajes.");
+    }
+  };
+
   return (
-    <WebSocketContext.Provider value={socket.current}>
+    <WebSocketContext.Provider value={{ sendMessage }}>
       {children}
     </WebSocketContext.Provider>
   );
 };
 
-export const useWebSocket = () => {
-  return useContext(WebSocketContext);
-};
+export const useWebSocket = () => useContext(WebSocketContext);
